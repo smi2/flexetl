@@ -2,6 +2,8 @@
 
 Universl flexable json to clickhouse data uploader
 
+FlexETL allows you to load bulk of json files into multiple Clickhouse clusters or servers.
+
 
 Program start params:
 
@@ -22,6 +24,7 @@ Sample:
 Sample of config:
 
     ./config/test.cfg
+
 
 
 
