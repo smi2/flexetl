@@ -25,17 +25,111 @@ Program start params:
 
 Sample:
 
-    ./bin/flexetl -config_file ./config/test.cfg -log_level debug -server_name=devnode
+    ./bin/flexetl -config_file ./example/test.cfg -log_level debug -server_name=devnode
 
 
 
 
 Sample of config:
 
-    ./config/test.cfg
+    ./example/test.cfg
+
+
+# Example
+
+1. PHP write to two type json files
+2. FlexETL watching directory
+3. FlexETL write to ch-cluster1 and ch-cluster2
+
+
+Example writers:
+
+```php
+file_put_contents('/tmp/flexEtlTest/TableViews/20200101.json'.,json_encode(
+        [
+            'dt'=>time(),
+            'type'=>'view',
+            'date'=>date('Y-m-d'),
+            'count'=>$f,
+            'hash'=>md5($f),
+            'a'=>'AAA',
+            'b'=>'BBBB'
+        ]
+    ));
+
+```
+
+Create table in clickhouse:
+
+```
+CREATE TABLE IF NOT EXISTS db_flexetl.tb_table_views
+(
+    dt	 DateTime 	 DEFAULT now(),
+	type	 LowCardinality(String),
+	date	 Date,
+	count	 UInt16,
+	hash     Nullable(String)
+) ENGINE = Log
+```
+
+Use FlexETL config for two clickhouse hosts
+
+* clickhouse1-1.host2.net
+* clickhouse2-2.host3.net
 
 
 
+```
+version = "1.0";
+application:
+{
+nodes:
+(
+           {
+                handler="json2click";                           // name handler
+                metrics="flexetl.json.";       // root metrics path
+                watch="/tmp/flexEtlTest/TableViews/";                  // [required] path for watching .json files
+                failed="/tmp/json2click/input/failed";          // [optional] path for bad input files
+                succeeded="/tmp/json2click/input/succeeded";    // [optional] path to backup true files
+                output="/tmp/json2click/output";                // [required] path for out files in .cdb format
+                delay=60;                                       // [optional] time period in second for save out file
+                blockSize=1000;                                 // [optional] max row count for save out file
+            },
+            {
+                handler="pipeset";                              // name handler
+                watch="/tmp/json2click/output";                 // [required] path for watching .cdb files
+                nodes:
+                (
+                   {
+                        handler="click2db";                             // name handler
+                        metrics="flexetl.%server_name%.xad_request.clb.";        // root metrics path
+                        tosend="/tmp/json2click/output/1";              // [required] intermidiate dir for sending files
+                        failed="/tmp/json2click/output/1/failed";       // [optional] path for files not sended to CH
+                        badfiles="/tmp/json2click/output/1/badfiles";   // [optional] path for bad input files
+                        host="clickhouse2-2.host3.net";
+                        port="9000";
+                        user="default";
+                        pass="12345678"
+                        table="test.xad_request";                       // [required] batabase_name.table_name
+                    },
+                    {
+                        handler="click2db";                             // name handler
+                        metrics="flexetl.%server_name%.xad_request.clb.";        // root metrics path
+                        tosend="/tmp/json2click/output/2";              // [required] intermidiate dir for sending files
+                        failed="/tmp/json2click/output/2/failed";       // [optional] path for files not sended to CH
+                        badfiles="/tmp/json2click/output/2/badfiles";   // [optional] path for bad input files
+                        host="clickhouse1-1.host2.net";
+                        port="9000";
+                        user="default";
+                        pass="23421232"
+                        table="default.xad_request";
+                    }
+                )
+            }
+);
+}
+
+```
 
 # License
 
