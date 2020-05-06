@@ -1,0 +1,23 @@
+clickhouse-cpp:
+url = https://github.com/ClickHouse/clickhouse-cpp.git
+a22e075ae7107074cd53181d7a4e8c74c72e23c2 (HEAD -> master, tag: v1.2.0, origin/master, origin/HEAD)
+
+concurrentqueue:
+url = https://github.com/cameron314/concurrentqueue.git
+0b410f5edfaec41d4e65509b46c2d3b719c13fe4 (HEAD -> master, origin/master, origin/HEAD)
+
+gflags:
+https://github.com/gflags/gflags.git
+addd749114fab4f24b7ea1e0f2f837584389e52c
+
+libconfig:
+url = https://github.com/hyperrealm/libconfig.git
+f53e5de4528b47195f9a02c502e4f244070b0468
+
+rapidjson:
+url = https://github.com/Tencent/rapidjson.git
+8f4c021fa2f1e001d2376095928fc0532adf2ae6 (HEAD -> master, origin/master, origin/HEAD)
+
+spdlog:
+url = https://github.com/gabime/spdlog.git
+854abdf5e653aef4907160f0a08ecc8855c05fed (HEAD -> v1.x, origin/v1.x, origin/HEAD)

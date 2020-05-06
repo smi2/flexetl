@@ -1,0 +1,3 @@
+[submodule "src/stem"]
+	path = src/stem
+	url = ../stem.git
