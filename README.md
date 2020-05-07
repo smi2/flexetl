@@ -83,6 +83,9 @@ Use FlexETL config for two clickhouse hosts
 version = "1.0";
 application:
 {
+    metricsHost="graphite.host.net";  // graphite host
+    //metricsPort="2003";             // graphite port, default 2003
+    //metricsInterval="60";           // agregate time, default 60 sec
 nodes:
 (
            {
