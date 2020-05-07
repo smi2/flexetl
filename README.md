@@ -22,12 +22,12 @@ Program start params:
     -log_max_files (Maximum number of log files) type: uint32 default: 10
     -log_path (Path to log files) type: string default: "/tmp"
     -clean_backup (Maximum number of days to store the backup) type: uint32 default: 3
+    -pid_file (Pid file for check running.) type: string default: "/var/run/flexetl.pid"
+    -pid_lock (Using Pid file for check running. For disable checking set -pid_file 0) type: uint32 default: 1
 
 Sample:
 
     ./bin/flexetl -config_file ./example/test.cfg -log_level debug -server_name=devnode
-
-
 
 
 Sample of config:
