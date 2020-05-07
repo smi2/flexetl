@@ -138,7 +138,10 @@ void Click2DB::lifeProc()
         if (!m_pClickDB && !tryConnect())
         {
             emptyCounter = 0; // сбрасываем счетчик холостых тактов
-            std::this_thread::sleep_for(std::chrono::seconds(CONNECT_TIMEOUT));
+            
+            for(int i=0;i<CONNECT_TIMEOUT && m_run.load(std::memory_order_acquire);i++)
+                std::this_thread::sleep_for(std::chrono::seconds(1));
+            
             continue;
         }
 
