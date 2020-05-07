@@ -33,6 +33,13 @@ Sample:
 Sample of config:
 
     ./example/test.cfg
+    
+You can use macros in the config that are separated by % characters. 
+Example from test.cfg:
+
+    metrics="flexetl.%server_name%.json.";
+    
+The %server_name% parameter must be set in the startup parameters as -server_name test_server.
 
 
 # Example
@@ -90,8 +97,8 @@ nodes:
 (
            {
                 handler="json2click";                           // name handler
-                metrics="flexetl.json.";       // root metrics path
-                watch="/tmp/flexEtlTest/TableViews/";                  // [required] path for watching .json files
+                metrics="flexetl.%server_name%.json.";          // root metrics path
+                watch="/tmp/flexEtlTest/TableViews/";           // [required] path for watching .json files
                 failed="/tmp/json2click/input/failed";          // [optional] path for bad input files
                 succeeded="/tmp/json2click/input/succeeded";    // [optional] path to backup true files
                 output="/tmp/json2click/output";                // [required] path for out files in .cdb format
