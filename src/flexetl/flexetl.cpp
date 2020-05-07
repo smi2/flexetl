@@ -128,7 +128,7 @@ bool FlexEtl::init(const std::string &configFile, int cleanBackupDays)
         {
             metricsPort = "2003";
         }
-        if (!handlersS.lookupValue("metricsInterval", metricsPort))
+        if (!handlersS.lookupValue("metricsInterval", metricsInterval))
         {
             metricsInterval = 60;
         }

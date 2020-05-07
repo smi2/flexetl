@@ -20,14 +20,7 @@ include(src/stem/project_version/get_version_git.cmake)
 add_version_git(${CMAKE_BINARY_DIR})
 
 
-
-
-
-add_subdirectory (src/stem/tcp_socket)
 add_subdirectory (src/stem/metrics)
-
-
-
 
 add_subdirectory( contrib/libconfig)
 add_subdirectory( contrib/gflags)
