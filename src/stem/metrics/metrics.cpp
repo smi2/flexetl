@@ -162,12 +162,6 @@ void metrics::agregateProc()
 				counter++;
 			}
 
-			for (const auto &itr : m_metricsMap)
-			{
-				buffer << itr.first << " " << itr.second << " " << seconds << "\n";
-				counter++;
-			}
-			m_metricsMap.clear();
 			m_logger->info("Metrics: agregate done: {}\n{}", counter, buffer.str());
 
 			if (counter > 0)

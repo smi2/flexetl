@@ -31,7 +31,7 @@ int main(int argc, char **argv)
     GFLAGS_NAMESPACE::AllowCommandLineReparsing();
     GFLAGS_NAMESPACE::ParseCommandLineFlags(&argc, &argv, true);
 
-    std::shared_ptr<spdlog::logger> logger = stem::spdlogInit();
+    std::shared_ptr<spdlog::logger> logger = stem::spdlogInit("flexetl");
 
     PidFile pidFile(FLAGS_pid_lock, FLAGS_pid_file);
 
@@ -41,7 +41,7 @@ int main(int argc, char **argv)
 
     if (!flexEtl.init(FLAGS_config_file, 24 * FLAGS_clean_backup))
     {
-        return -1;
+        exit(EXIT_FAILURE);
     }
 
     flexEtl.start();

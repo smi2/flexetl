@@ -21,123 +21,140 @@ namespace stem
 
 class metrics
 {
+
+protected:
+    template <typename ctype>
+    struct CounterViewImpl;
+
 public:
-    template <typename value_t>
-    class counter_t
+    class counter_u
     {
+        friend struct CounterViewImpl<counter_u>;
         friend class metrics;
-        typedef std::atomic<value_t> atomic_t;
+        typedef std::atomic<uint64_t> atomic_t;
         std::shared_ptr<atomic_t> _val;
 
-    public:
-        counter_t() : _val(std::make_shared<atomic_t>(0)) {}
-        void reset() { _val.reset(); }
-
-        counter_t &operator++()
+        uint64_t flush()
         {
             if (_val)
-                _val->fetch_add(1, std::memory_order_relaxed);
-            return *this;
-        }
-        counter_t &operator+=(value_t count)
-        {
-            if (_val)
-                _val->fetch_add(count, std::memory_order_relaxed);
-            return *this;
-        }
-        value_t flush()
-        {
-            if (_val)
-                return _val->exchange(0, std::memory_order_relaxed);
+                return _val->exchange(0, std::memory_order_consume);
             return 0;
         }
+
+    public:
+        counter_u() : _val(std::make_shared<atomic_t>()) { _val->store(0); }
+
+        counter_u &operator++()
+        {
+            if (_val)
+                _val->fetch_add(1, std::memory_order_consume);
+            return *this;
+        }
+        counter_u &operator+=(uint64_t count)
+        {
+            if (_val)
+                _val->fetch_add(count, std::memory_order_consume);
+            return *this;
+        }
     };
-    typedef counter_t<unsigned long long> counter_u;
 
     class counter_d
     {
-        typedef double value_t;
+        friend struct CounterViewImpl<counter_d>;
         friend class metrics;
-        typedef std::atomic<value_t> atomic_t;
+
+        typedef std::atomic<uint64_t> atomic_t;
         std::shared_ptr<atomic_t> _val;
 
-    public:
-        counter_d() : _val(std::make_shared<atomic_t>(0)) {}
-        void reset() { _val.reset(); }
+        double flush()
+        {
+            if (!_val)
+                return 0;
+            double res = _val->exchange(0, std::memory_order_consume);
+            return res / 10000.;
+        }
 
-        counter_d &operator+=(value_t val)
+    public:
+        counter_d() : _val(std::make_shared<atomic_t>()) { _val->store(0); }
+
+        counter_d &operator+=(double val)
         {
             if (!_val)
                 return *this;
 
-            value_t oldV;
-            do
-            {
-                oldV = _val->load(std::memory_order_relaxed);
-            } while (!_val->compare_exchange_weak(oldV, oldV + val), std::memory_order_relaxed);
-
-            return *this;
-        }
-        value_t flush()
-        {
-            if (_val)
-                return _val->exchange(0, std::memory_order_relaxed);
-            return 0;
-        }
-    };
-
-    template <typename value_t>
-    class collector_t
-    {
-        struct value
-        {
-            value_t v;
-            uint32_t c;
-        };
-        friend class metrics;
-        typedef std::atomic<value> atomic_t;
-        std::shared_ptr<atomic_t> val;
-
-    public:
-        collector_t() : val(std::make_shared<atomic_t>(0)) {}
-
-        void reset() { val.reset(); }
-
-        collector_t &operator+=(value_t _val)
-        {
-            if (!val)
+            if (!_val)
                 return *this;
 
-            value oldV;
-            do
-            {
-                oldV = val->load(std::memory_order_relaxed);
-            } while (!val->compare_exchange_weak(oldV, {oldV.v + _val, oldV.c + 1}, std::memory_order_relaxed));
+            uint64_t v = val * 10000.;
+            if (_val)
+                _val->fetch_add(v, std::memory_order_consume);
 
             return *this;
         }
+    };
+
+    class collector_u
+    {
+        friend struct CounterViewImpl<collector_u>;
+        union ValueT {
+            struct
+            {
+                uint64_t v : 44;
+                uint64_t c : 20;
+            };
+            uint64_t r;
+        };
+        typedef uint32_t value_t;
+        friend class metrics;
+        typedef std::atomic<uint64_t> atomic_t;
+        std::shared_ptr<atomic_t> _val;
+
         value_t flush()
         {
-            if (!val)
+            if (!_val)
                 return 0;
 
-            value _val = val->exchange({0, 0}, std::memory_order_relaxed);
-            return _val.c != 0 ? _val.v / _val.c : 0;
+            ValueT v;
+            v.r = _val->exchange(0, std::memory_order_consume);
+            uint64_t res = v.c != 0 ? v.v / v.c : 0;
+
+            if (res > 1000000)
+                return 0;
+            return res;
+        }
+
+    public:
+        collector_u() : _val(std::make_shared<atomic_t>()) { _val->store(0); }
+
+        collector_u &operator+=(value_t val)
+        {
+            if (!_val)
+                return *this;
+
+            ValueT v;
+            v.v = val;
+            v.c = 1;
+            if (_val)
+                _val->fetch_add(v.r, std::memory_order_consume);
+
+            return *this;
         }
     };
-    typedef collector_t<unsigned long long> collector_u;
-    typedef collector_t<double> collector_d;
 
 protected:
     struct CounterView
     {
         virtual ~CounterView() {}
         virtual std::string flush() = 0;
+        virtual bool connect(counter_u &) { return false; }
+        virtual bool connect(counter_d &) { return false; }
+        virtual bool connect(collector_u &) { return false; }
     };
 
     template <typename ctype>
     struct CounterViewImpl : public CounterView
     {
+    public:
         ctype counter;
 
         CounterViewImpl(ctype _counter) : counter(_counter) {}
@@ -146,6 +163,11 @@ protected:
         virtual std::string flush() override
         {
             return std::to_string(counter.flush());
+        }
+        virtual bool connect(ctype &mtr) override
+        {
+            mtr._val = counter._val;
+            return true;
         }
     };
 
@@ -165,7 +187,6 @@ protected:
     std::thread m_agregateThread;
 
     std::unique_ptr<SendQueue> m_sendQueue;
-    std::map<std::string, uint64_t> m_metricsMap;
 
     std::mutex m_mutex;
     std::map<std::string, std::unique_ptr<CounterView>> m_counterMap;
@@ -187,18 +208,26 @@ public:
     void start();
 
     template <typename ctype>
-    void connect(ctype &counter, std::string name,std::string root="")
+    void connect(ctype &counter, std::string name, std::string root = "")
     {
         std::string mtr = getName(std::move(root), std::move(name));
         std::lock_guard<std::mutex> lock(m_mutex);
+        auto itr = m_counterMap.find(mtr);
         if (m_counterMap.find(mtr) != m_counterMap.end())
         {
-            throw "Duplicate metrics";
+            if (!itr->second->connect(counter))
+            {
+                std::string mess = "Error at duplicate metrics '" + mtr + "': other type";
+                throw std::runtime_error(mess);
+            }
+            spdlog::debug("Metrics duplicated: {}", mtr);
         }
-        spdlog::debug("Metrics registered: {}",mtr);
-
-        m_counterMap[mtr] = std::unique_ptr<CounterView>(new CounterViewImpl<ctype>(counter));
+        else
+        {
+            m_counterMap[mtr] = std::unique_ptr<CounterView>(new CounterViewImpl<ctype>(counter));
+            spdlog::debug("Metrics registered: {}", mtr);
+        }
     }
 };
 
-} // namespace
+} // namespace stem

@@ -143,7 +143,7 @@ void Click2DB::lifeProc()
                 std::this_thread::sleep_for(std::chrono::seconds(1));
             
             continue;
-        }
+       }
 
         if (emptyCounter / 2 > CONNECT_TIMEOUT)
         {

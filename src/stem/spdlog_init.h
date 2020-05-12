@@ -14,7 +14,8 @@ DEFINE_uint32(log_max_files, 10, "Maximum number of log files");
 /*
 The first call sets the default spdlog.
 */
-static std::shared_ptr<spdlog::logger> spdlogInit(const std::string &path = FLAGS_log_path,
+static std::shared_ptr<spdlog::logger> spdlogInit(const std::string &progName,
+                                                  const std::string &path = FLAGS_log_path,
                                                   const std::string &level = FLAGS_log_level,
                                                   int maxFiles = FLAGS_log_max_files,
                                                   int maxFileSize = FLAGS_log_max_file_size)
@@ -50,7 +51,7 @@ static std::shared_ptr<spdlog::logger> spdlogInit(const std::string &path = FLAG
             }
         }
 
-        logger = std::make_shared<spdlog::logger>("flexetl", std::begin(sinks), std::end(sinks));
+        logger = std::make_shared<spdlog::logger>(progName, std::begin(sinks), std::end(sinks));
         logger->set_level(defaultLevel);
 
         logger->flush_on(spdlog::level::info);
